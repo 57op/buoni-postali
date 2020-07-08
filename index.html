@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+        <title>Simulatore Buoni Postali</title>
+        <script src="vue.js"></script>
+        <style>
+        html, body {
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #main {
+            width: 80%;
+            margin: 0 auto;
+        }
+
+        #form {
+            text-align: center;
+        }
+
+        #table {
+            overflow: scroll;
+            border: 1px solid black;
+            border-collapse: collapse;
+            margin: 0 auto;
+        }
+
+        #table thead {
+            background: black;
+            color: white;
+            text-align: center;
+        }
+
+        #table tbody {
+            text-align: right;
+        }
+
+        #table tr:nth-child(even) {
+            background: #efefef;
+        }
+
+        #table th, #table td {
+            padding: 0.5em 0.75em;
+        }
+        </style>
+    </head>
+    <body>
+        <div id="main">
+            <p>Il database dei buoni è stato aggiornato il 08/07/2020.</p>
+            <hr>
+            <form id="form">
+                <div>
+                    <label>Importo: <input type="number" v-model="amount" min="1000" step="50" placeholder="Importo da sottoscrivere"></label>
+                    <label>Anni: <input type="number" v-model="duration" min="1" step="1" placeholder="Anni di investimento"></label>
+                </div>
+            </form>
+            <hr>
+            <table v-if="results.length" id="table">
+                <thead>
+                    <tr>
+                        <th>Buoni Postali</th>
+                        <th>Guadagno Netto</th>
+                        <th>Totale</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="result in results">
+                        <td>
+                            <span v-for="[tipologia, durata, frequenza] in simplify(result.buoni)">
+                                {{ tipologia }} ({{ durata }}<span v-if="frequenza > 1">×{{ frequenza }}</span>)
+                            </span>
+                        </td>
+                        <td>
+                            {{ result.nett }}
+                        </td>
+                        <td>
+                            {{ add(result.nett) }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <script>
+        /*
+        @licstart  The following is the entire license notice for the
+        JavaScript code in this page.
+
+        Copyright (C) 2020  dovah@tuta.io
+
+        The JavaScript code in this page is free software: you can
+        redistribute it and/or modify it under the terms of the GNU
+        General Public License (GNU GPL) as published by the Free Software
+        Foundation, either version 3 of the License, or (at your option)
+        any later version.  The code is distributed WITHOUT ANY WARRANTY;
+        without even the implied warranty of MERCHANTABILITY or FITNESS
+        FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+        As additional permission under GNU GPL version 3 section 7, you
+        may distribute non-source (e.g., minimized or compacted) forms of
+        that code without the copy of the GNU GPL normally required by
+        section 4, provided you include this license notice and a URL
+        through which recipients can access the Corresponding Source.
+
+
+        @licend  The above is the entire license notice
+        for the JavaScript code in this page.
+        */
+        </script>
+        <script>
+        /**
+        * factors: List of non negative numbers
+        * target: non negative number
+        * sum: root initial value [used for recursion]
+        * path: initial path [used for recursion]
+        * results: List containing results [used in recursion, but its reference can be used after the function has been executed]
+        * fn: if factors is a list of a more complex structure rathen then atomic numbers,
+        *     you can use this function to destructure it and make it point to a number
+        */
+        function combinations(factors, target, sum = 0, path = [], results = [], fn = (x => x)) {
+            if (sum === target) {
+                results.push(path)
+            } else if (sum < target) {
+                for (const [index, factor] of factors.entries()) {
+                    // keep slicing in order to get unique combinations
+                    combinations(factors.slice(index), target, sum + fn(factor), [...path, factor], results, fn)
+                }
+            }
+
+            // always return the reference of results [even though you can access the results differently]
+            return results
+        }
+
+        const BuoniPostali = [
+            /*
+            {
+                tipologia: String,
+                durata:  years to elapse to gain profit (specified in ral)
+                ral: annual gross revenue / reddito annuo lordo
+                rf: ritenuta fiscale / withholding tax
+            }
+            */
+            {
+                tipologia: 'BFP3x2',
+                durata: 3,
+                ral: 0.0035,
+                rf: 0.125
+            },
+            {
+                tipologia: 'BFP3x2',
+                durata: 6,
+                ral: 0.0070,
+                rf: 0.125
+            },
+            {
+                tipologia: 'BFP3x4',
+                durata: 3,
+                ral: 0.0035,
+                rf: 0.125
+            },
+            {
+                tipologia: 'BFP3x4',
+                durata: 6,
+                ral: 0.0050,
+                rf: 0.125
+            },
+            {
+                tipologia: 'BFP3x4',
+                durata: 9,
+                ral: 0.0100,
+                rf: 0.125
+            },
+            {
+                tipologia: 'BFP3x4',
+                durata: 12,
+                ral: 0.0150,
+                rf: 0.125
+            },
+            {
+                tipologia: 'BFP4x4',
+                durata: 4,
+                ral: 0.0040,
+                rf: 0.125
+            },
+            {
+                tipologia: 'BFP4x4',
+                durata: 8,
+                ral: 0.0075,
+                rf: 0.125
+            },
+            {
+                tipologia: 'BFP4x4',
+                durata: 12,
+                ral: 0.0125,
+                rf: 0.125
+            },
+            {
+                tipologia: 'BFP4x4',
+                durata: 16,
+                ral: 0.0175,
+                rf: 0.125
+            },
+            {
+                tipologia: 'SSmart360',
+                durata: 1,
+                ral: 0.0040,
+                rf: 0.260
+            }
+        ]
+
+        const app = new Vue({
+            el: '#main',
+            data: {
+                amount: null,
+                duration: null
+            },
+            computed: {
+                results () {
+                    const amount = +this.amount
+                    const duration = +this.duration
+
+                    if (amount === null || duration === null) {
+                        return []
+                    }
+
+                    return combinations(BuoniPostali, duration, 0, [], [], x => x.durata)
+                                .map(buoni => {
+                                    return { buoni, nett: this.earnings(buoni) }
+                                })
+                                .sort((a, b) => b.nett - a.nett)
+                }
+            },
+            methods: {
+                earnings (buoni) {
+                    let nett = 0
+
+                    for (const buono of buoni) {
+                        nett += this.amount * (Math.pow(1 + buono.ral, buono.durata) - 1) * (1 - buono.rf)
+                    }
+
+                    return nett.toFixed(2)
+                },
+
+                simplify (buoni) {
+                    const frequencyMap = {}
+
+                    for (const buono of buoni) {
+                        if (!frequencyMap[buono.durata]) {
+                            frequencyMap[buono.durata] = {}
+                        }
+
+                        frequencyMap[buono.durata][buono.tipologia] = 1 + (frequencyMap[buono.durata][buono.tipologia] || 0)
+                    }
+
+                    const simpliefiedBuoni = []
+
+                    for (const [durata, freqTipologia] of Object.entries(frequencyMap)) {
+                        for (const [tipologia, frequenza] of Object.entries(freqTipologia)) {
+                            simpliefiedBuoni.push([tipologia, durata, frequenza])
+                        }
+                    }
+
+                    return simpliefiedBuoni
+                },
+
+                add (nett) {
+                    return ((+this.amount) + (+nett)).toFixed(2)
+                }
+            }
+        })
+        </script>
+    </body>
+</html>
