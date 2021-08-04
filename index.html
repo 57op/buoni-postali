@@ -50,7 +50,7 @@
     </head>
     <body>
         <div id="main">
-            <p>Il database dei buoni è stato aggiornato il 08/07/2020.</p>
+            <p>Il database dei buoni è stato aggiornato il 04/08/2021.</p>
             <hr>
             <form id="form">
                 <div>
@@ -63,8 +63,10 @@
                 <thead>
                     <tr>
                         <th>Buoni Postali</th>
-                        <th>Guadagno Netto</th>
-                        <th>Totale</th>
+                        <th>Guadagno lordo</th>
+                        <th>Guadagno netto</th>
+                        <th>Ritenuta fiscale</th>
+                        <th>Valore totale</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -75,10 +77,16 @@
                             </span>
                         </td>
                         <td>
-                            {{ result.nett }}
+                            {{ (+result.lord).toFixed(2) }}
                         </td>
                         <td>
-                            {{ add(result.nett) }}
+                            {{ (+result.nett).toFixed(2) }}
+                        </td>
+                        <td>
+                            {{ (+result.tr).toFixed(2) }}
+                        </td>
+                        <td>
+                            {{ ((+amount) + (+result.nett)).toFixed(2) }}
                         </td>
                     </tr>
                 </tbody>
@@ -144,63 +152,51 @@
             }
             */
             {
-                tipologia: 'BFP3x2',
-                durata: 3,
-                ral: 0.0035,
-                rf: 0.125
-            },
-            {
-                tipologia: 'BFP3x2',
-                durata: 6,
-                ral: 0.0070,
-                rf: 0.125
-            },
-            {
                 tipologia: 'BFP3x4',
                 durata: 3,
-                ral: 0.0035,
+                ral: 0.001,
                 rf: 0.125
             },
             {
                 tipologia: 'BFP3x4',
                 durata: 6,
-                ral: 0.0050,
+                ral: 0.002,
                 rf: 0.125
             },
             {
                 tipologia: 'BFP3x4',
                 durata: 9,
-                ral: 0.0100,
+                ral: 0.003,
                 rf: 0.125
             },
             {
                 tipologia: 'BFP3x4',
                 durata: 12,
-                ral: 0.0150,
+                ral: 0.005,
                 rf: 0.125
             },
             {
                 tipologia: 'BFP4x4',
                 durata: 4,
-                ral: 0.0040,
+                ral: 0.002,
                 rf: 0.125
             },
             {
                 tipologia: 'BFP4x4',
                 durata: 8,
-                ral: 0.0075,
+                ral: 0.003,
                 rf: 0.125
             },
             {
                 tipologia: 'BFP4x4',
                 durata: 12,
-                ral: 0.0125,
+                ral: 0.004,
                 rf: 0.125
             },
             {
                 tipologia: 'BFP4x4',
                 durata: 16,
-                ral: 0.0175,
+                ral: 0.0075,
                 rf: 0.125
             },
             {
@@ -228,20 +224,23 @@
 
                     return combinations(BuoniPostali, duration, 0, [], [], x => x.durata)
                                 .map(buoni => {
-                                    return { buoni, nett: this.earnings(buoni) }
+                                    return { buoni, ...this.earnings(buoni) }
                                 })
                                 .sort((a, b) => b.nett - a.nett)
                 }
             },
             methods: {
                 earnings (buoni) {
-                    let nett = 0
+                    let lord = 0
+                    let tr   = 0
 
                     for (const buono of buoni) {
-                        nett += this.amount * (Math.pow(1 + buono.ral, buono.durata) - 1) * (1 - buono.rf)
+                        const profit = this.amount * (Math.pow(1 + buono.ral, buono.durata) - 1)
+                        lord += profit
+                        tr   += profit * buono.rf
                     }
 
-                    return nett.toFixed(2)
+                    return { lord, nett: lord - tr, tr }
                 },
 
                 simplify (buoni) {
@@ -255,19 +254,15 @@
                         frequencyMap[buono.durata][buono.tipologia] = 1 + (frequencyMap[buono.durata][buono.tipologia] || 0)
                     }
 
-                    const simpliefiedBuoni = []
+                    const simplifiedBuoni = []
 
                     for (const [durata, freqTipologia] of Object.entries(frequencyMap)) {
                         for (const [tipologia, frequenza] of Object.entries(freqTipologia)) {
-                            simpliefiedBuoni.push([tipologia, durata, frequenza])
+                            simplifiedBuoni.push([tipologia, durata, frequenza])
                         }
                     }
 
-                    return simpliefiedBuoni
-                },
-
-                add (nett) {
-                    return ((+this.amount) + (+nett)).toFixed(2)
+                    return simplifiedBuoni
                 }
             }
         })

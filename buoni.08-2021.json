@@ -1,0 +1,74 @@
+            /*
+            {
+                tipologia: String,
+                durata:  years to elapse to gain profit (specified in ral)
+                ral: annual gross revenue / reddito annuo lordo
+                rf: ritenuta fiscale / withholding tax
+            }
+            */
+            {
+              tipologia: 'BFP3x2',
+              durata: 3,
+              ral: 0.0035,
+              rf: 0.125
+          },
+          {
+              tipologia: 'BFP3x2',
+              durata: 6,
+              ral: 0.0070,
+              rf: 0.125
+          },
+          {
+              tipologia: 'BFP3x4',
+              durata: 3,
+              ral: 0.0035,
+              rf: 0.125
+          },
+          {
+              tipologia: 'BFP3x4',
+              durata: 6,
+              ral: 0.0050,
+              rf: 0.125
+          },
+          {
+              tipologia: 'BFP3x4',
+              durata: 9,
+              ral: 0.0100,
+              rf: 0.125
+          },
+          {
+              tipologia: 'BFP3x4',
+              durata: 12,
+              ral: 0.0150,
+              rf: 0.125
+          },
+          {
+              tipologia: 'BFP4x4',
+              durata: 4,
+              ral: 0.0040,
+              rf: 0.125
+          },
+          {
+              tipologia: 'BFP4x4',
+              durata: 8,
+              ral: 0.0075,
+              rf: 0.125
+          },
+          {
+              tipologia: 'BFP4x4',
+              durata: 12,
+              ral: 0.0125,
+              rf: 0.125
+          },
+          {
+              tipologia: 'BFP4x4',
+              durata: 16,
+              ral: 0.0175,
+              rf: 0.125
+          },
+          {
+              tipologia: 'SSmart360',
+              durata: 1,
+              ral: 0.0040,
+              rf: 0.260
+          }
