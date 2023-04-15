@@ -50,12 +50,13 @@
     </head>
     <body>
         <div id="main">
-            <p>Il database dei buoni è stato aggiornato il 04/08/2021.</p>
+            <p>Il database dei buoni è stato aggiornato il 15/04/2023.</p>
             <hr>
             <form id="form">
                 <div>
                     <label>Importo: <input type="number" v-model="amount" min="1000" step="50" placeholder="Importo da sottoscrivere"></label>
                     <label>Anni: <input type="number" v-model="duration" min="1" step="1" placeholder="Anni di investimento"></label>
+                    <label title="Permette di non investire nell'ultima parte degli anni specificati (es: 0.5 per indicare 6 mesi)">Soglia: <input type="number" v-model="threshold" min="0" step="0.1" placeholder="Soglia inferiore anni"></label>
                 </div>
             </form>
             <hr>
@@ -73,7 +74,7 @@
                     <tr v-for="result in results">
                         <td>
                             <span v-for="[tipologia, durata, frequenza] in simplify(result.buoni)">
-                                {{ tipologia }} ({{ durata }}<span v-if="frequenza > 1">×{{ frequenza }}</span>)
+                                {{ tipologia }} ({{ (+durata).toFixed(2) }}<span v-if="frequenza > 1">×{{ frequenza }}</span>)
                             </span>
                         </td>
                         <td>
@@ -127,14 +128,18 @@
         * results: List containing results [used in recursion, but its reference can be used after the function has been executed]
         * fn: if factors is a list of a more complex structure rathen then atomic numbers,
         *     you can use this function to destructure it and make it point to a number
+        * threshold: non negative number, allows sum to be a little less than target
         */
-        function combinations(factors, target, sum = 0, path = [], results = [], fn = (x => x)) {
-            if (sum === target) {
+        function combinations(factors, target, sum = 0, path = [], results = [], fn = (x => x), threshold = 0.5) {
+            console.log(threshold)
+            const diff = target - sum
+
+            if (diff >= 0 && diff <= threshold /*sum === target*/) {
                 results.push(path)
             } else if (sum < target) {
                 for (const [index, factor] of factors.entries()) {
                     // keep slicing in order to get unique combinations
-                    combinations(factors.slice(index), target, sum + fn(factor), [...path, factor], results, fn)
+                    combinations(factors.slice(index), target, sum + fn(factor), [...path, factor], results, fn, threshold)
                 }
             }
 
@@ -151,59 +156,104 @@
                 rf: ritenuta fiscale / withholding tax
             }
             */
+           {
+                tipologia: 'BFP3+',
+                durata: 3,
+                ral: 0.015,
+                rf: 0.125
+            },
+            {
+                tipologia: 'BFP3x2',
+                durata: 3,
+                ral: 0.0125,
+                rf: 0.125
+            },
+            {
+                tipologia: 'BFP3x2',
+                durata: 6,
+                ral: 0.02,
+                rf: 0.125
+            },
             {
                 tipologia: 'BFP3x4',
                 durata: 3,
-                ral: 0.001,
+                ral: 0.0125,
                 rf: 0.125
             },
             {
                 tipologia: 'BFP3x4',
                 durata: 6,
-                ral: 0.002,
+                ral: 0.0175,
                 rf: 0.125
             },
             {
                 tipologia: 'BFP3x4',
                 durata: 9,
-                ral: 0.003,
+                ral: 0.0225,
                 rf: 0.125
             },
             {
                 tipologia: 'BFP3x4',
                 durata: 12,
-                ral: 0.005,
+                ral: 0.025,
                 rf: 0.125
             },
             {
                 tipologia: 'BFP4x4',
                 durata: 4,
-                ral: 0.002,
+                ral: 0.015,
                 rf: 0.125
             },
             {
                 tipologia: 'BFP4x4',
                 durata: 8,
-                ral: 0.003,
+                ral: 0.02,
                 rf: 0.125
             },
             {
                 tipologia: 'BFP4x4',
                 durata: 12,
-                ral: 0.004,
+                ral: 0.0225,
                 rf: 0.125
             },
             {
                 tipologia: 'BFP4x4',
                 durata: 16,
-                ral: 0.0075,
+                ral: 0.03,
                 rf: 0.125
             },
             {
-                tipologia: 'SSmart360',
+                tipologia: 'SSmart180',
+                durata: 180 / 365,
+                ral: 0.015, /* not the real ral, but close to
+                             * they are actually computed per days and not per year */
+                rf: 0.26
+            },
+            {
+                tipologia: 'SSmart300',
+                durata: 300 / 365,
+                ral: 0.03, /* not the real ral, but close to
+                             * they are actually computed per days and not per year */
+                rf: 0.26
+            },
+            /* altre forme di investimento, extra poste */
+            {
+                tipologia: 'PCT 12',
                 durata: 1,
-                ral: 0.0040,
-                rf: 0.260
+                ral: 0.028,
+                rf: 0.26
+            },
+            {
+                tipologia: 'PCT 18',
+                durata: 1.5,
+                ral: 0.03,
+                rf: 0.26
+            },
+            {
+                tipologia: 'TD 180',
+                durata: 180 / 365,
+                ral: 0.02,
+                rf: 0.26
             }
         ]
 
@@ -211,22 +261,31 @@
             el: '#main',
             data: {
                 amount: null,
-                duration: null
+                duration: null,
+                threshold: 0.5
             },
             computed: {
                 results () {
                     const amount = +this.amount
-                    const duration = +this.duration
+                    const duration = Math.max(0, +this.duration)
+                    const threshold = Math.max(0, +this.threshold)
 
                     if (amount === null || duration === null) {
                         return []
                     }
 
-                    return combinations(BuoniPostali, duration, 0, [], [], x => x.durata)
-                                .map(buoni => {
-                                    return { buoni, ...this.earnings(buoni) }
-                                })
-                                .sort((a, b) => b.nett - a.nett)
+                    return combinations(
+                        BuoniPostali,
+                        duration,
+                        0,
+                        [],
+                        [],
+                        x => x.durata,
+                        threshold)
+                            .map(buoni => {
+                                return { buoni, ...this.earnings(buoni) }
+                            })
+                            .sort((a, b) => b.nett - a.nett)
                 }
             },
             methods: {
